@@ -14,7 +14,7 @@ module I = struct
     ; clear : 'a
     ; start : 'a
     ; finish : 'a
-    ; direction : 'a [@bits num_bits_direction]  
+    ; direction : 'a [@bits num_bits_direction]
     ; amount : 'a [@bits num_bits_amount]
     }
   [@@deriving hardcaml]
@@ -44,31 +44,28 @@ let create scope ({ clock; clear; start; finish; direction; amount } : _ I.t)
   let pwd_valid = Variable.wire ~default:gnd () in
 
   let hundred   = of_int_trunc ~width:num_bits_pos 100 in
-  let magic_100 = of_int_trunc ~width:num_bits_pos 0x51EB851F in
-
+  let magic_100 = of_int_trunc ~width:num_bits_pos 0x51EB851F in 
   let amount_32 = uresize amount ~width:num_bits_pos in
+
   let prod = amount_32 *: magic_100 in
-  let q = select prod ~high:63 ~low:37 in
-  let reduced_amount =
-    amount_32 -: uresize (q *: hundred) ~width:num_bits_pos
-  in
+  let q = select prod ~high:63 ~low:37 in 
 
-  let moved_pos =
-    mux2
-      direction
-      (pos.value +: reduced_amount)
-      (pos.value -: reduced_amount)
-  in
+  let rem = amount_32 -: uresize (q *: hundred) ~width:num_bits_pos in
 
-  let wrapped_pos =
-    mux2
-      (moved_pos >=+ hundred)
-      (moved_pos -: hundred)
-      (mux2
-         (moved_pos <+ zero num_bits_pos)
-         (moved_pos +: hundred)
-         moved_pos)
-  in
+  let moved_pos_add = pos.value +: rem in
+  let moved_pos_sub = pos.value -: rem in
+
+  let next_pos_add = mux2 (moved_pos_add >=: hundred) (moved_pos_add -: hundred) moved_pos_add in
+  let next_pos_sub = mux2 (moved_pos_sub >=: hundred) (moved_pos_sub +: hundred) moved_pos_sub in 
+  let next_pos = mux2 direction next_pos_add next_pos_sub in
+
+  let hits_from_rotations = uresize q ~width:num_bits_pwd in
+  let hit_right = (moved_pos_add >=: hundred) in
+  let hit_left = (rem >=: pos.value) &: (pos.value <>: (zero num_bits_pos)) in
+
+  let partial_hit = mux2 direction hit_right hit_left in
+
+  let total_increment = hits_from_rotations +: uresize partial_hit ~width:num_bits_pwd in
 
   compile
     [
@@ -76,20 +73,17 @@ let create scope ({ clock; clear; start; finish; direction; amount } : _ I.t)
         [
           ( Idle,
             [ when_ start
-                [ pwd <-- zero num_bits_pwd
-                ; pos <-- of_int_trunc ~width:num_bits_pos 50
-                ; sm.set_next Accept
+                [ pwd <-- zero num_bits_pwd;
+                  pos <-- of_int_trunc ~width:num_bits_pos 50;
+                  sm.set_next Accept
                 ]
             ] );
 
           ( Accept,
             [ 
-              when_ vdd [ pos <-- wrapped_pos ]
-              ; 
-              when_ (wrapped_pos ==: zero num_bits_pos)
-                [ pwd <-- pwd.value +: of_int_trunc ~width:num_bits_pwd 1 ]
-
-              ; when_ finish [ sm.set_next Done ]
+              pos <-- next_pos;
+              pwd <-- pwd.value +: total_increment;
+              when_ finish [ sm.set_next Done ]
             ] );
 
           ( Done,
@@ -97,8 +91,9 @@ let create scope ({ clock; clear; start; finish; direction; amount } : _ I.t)
         ];
     ];
 
-  { pwd = { value = pwd.value; valid = pwd_valid.value } }
+  {pwd = {value = pwd.value; valid = pwd_valid.value}}
 ;;
+
 
 let hierarchical scope =
   let module Scoped = Hierarchy.In_scope (I) (O) in

@@ -76,20 +76,17 @@ let create scope ({ clock; clear; start; finish; direction; amount } : _ I.t)
         [
           ( Idle,
             [ when_ start
-                [ pwd <-- zero num_bits_pwd
-                ; pos <-- of_int_trunc ~width:num_bits_pos 50
-                ; sm.set_next Accept
+                [ pwd <-- zero num_bits_pwd;
+                  pos <-- of_int_trunc ~width:num_bits_pos 50;
+                  sm.set_next Accept
                 ]
             ] );
 
           ( Accept,
             [ 
-              when_ vdd [ pos <-- wrapped_pos ]
-              ; 
-              when_ (wrapped_pos ==: zero num_bits_pos)
-                [ pwd <-- pwd.value +: of_int_trunc ~width:num_bits_pwd 1 ]
-
-              ; when_ finish [ sm.set_next Done ]
+              when_ vdd [ pos <-- wrapped_pos ]; 
+              when_ (wrapped_pos ==: zero num_bits_pos) [ pwd <-- pwd.value +: of_int_trunc ~width:num_bits_pwd 1 ];
+              when_ finish [ sm.set_next Done ]
             ] );
 
           ( Done,
@@ -97,7 +94,7 @@ let create scope ({ clock; clear; start; finish; direction; amount } : _ I.t)
         ];
     ];
 
-  { pwd = { value = pwd.value; valid = pwd_valid.value } }
+  {pwd = {value = pwd.value; valid = pwd_valid.value}}
 ;;
 
 let hierarchical scope =
