@@ -1,0 +1,13 @@
+# OCaml / Dune build artifacts
+build/
+_build/
+*.exe
+*.bc
+*.cm*
+*.o
+*.a
+
+# Hardcaml / simulation outputs
+*.vcd
+*.fst
+
