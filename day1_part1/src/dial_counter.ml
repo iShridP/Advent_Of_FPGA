@@ -10,12 +10,12 @@ let num_bits_direction = 1
 
 module I = struct
   type 'a t =
-    { clock : 'a
-    ; clear : 'a
-    ; start : 'a
-    ; finish : 'a
-    ; direction : 'a [@bits num_bits_direction]  
-    ; amount : 'a [@bits num_bits_amount]
+    { clock : 'a;
+      clear : 'a;
+      start : 'a;
+      finish : 'a;
+      direction : 'a [@bits num_bits_direction];  
+      amount : 'a [@bits num_bits_amount]
     }
   [@@deriving hardcaml]
 end
@@ -31,8 +31,7 @@ module States = struct
   [@@deriving sexp_of, compare ~localize, enumerate]
 end
 
-let create scope ({ clock; clear; start; finish; direction; amount } : _ I.t)
-  : _ O.t
+let create scope ({ clock; clear; start; finish; direction; amount } : _ I.t) : _ O.t
   =
   let spec = Reg_spec.create ~clock ~clear () in
   let open Always in

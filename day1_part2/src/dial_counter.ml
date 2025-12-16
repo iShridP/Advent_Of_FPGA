@@ -10,12 +10,12 @@ let num_bits_direction = 1
 
 module I = struct
   type 'a t =
-    { clock : 'a
-    ; clear : 'a
-    ; start : 'a
-    ; finish : 'a
-    ; direction : 'a [@bits num_bits_direction]
-    ; amount : 'a [@bits num_bits_amount]
+    { clock : 'a;
+      clear : 'a;
+      start : 'a;
+      finish : 'a;
+      direction : 'a [@bits num_bits_direction];  
+      amount : 'a [@bits num_bits_amount]
     }
   [@@deriving hardcaml]
 end
@@ -55,9 +55,25 @@ let create scope ({ clock; clear; start; finish; direction; amount } : _ I.t)
   let moved_pos_add = pos.value +: rem in
   let moved_pos_sub = pos.value -: rem in
 
-  let next_pos_add = mux2 (moved_pos_add >=: hundred) (moved_pos_add -: hundred) moved_pos_add in
-  let next_pos_sub = mux2 (moved_pos_sub >=: hundred) (moved_pos_sub +: hundred) moved_pos_sub in 
-  let next_pos = mux2 direction next_pos_add next_pos_sub in
+  let next_pos_add = 
+    mux2 
+      (moved_pos_add >=: hundred) 
+      (moved_pos_add -: hundred) 
+      moved_pos_add 
+  in
+  let next_pos_sub = 
+    mux2 
+      (moved_pos_sub >=: hundred) 
+      (moved_pos_sub +: hundred) 
+      moved_pos_sub 
+  in 
+
+  let next_pos = 
+    mux2 
+      direction 
+      next_pos_add 
+      next_pos_sub 
+  in
 
   let hits_from_rotations = uresize q ~width:num_bits_pwd in
   let hit_right = (moved_pos_add >=: hundred) in
