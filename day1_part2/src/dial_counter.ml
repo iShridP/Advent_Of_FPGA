@@ -31,9 +31,7 @@ module States = struct
   [@@deriving sexp_of, compare ~localize, enumerate]
 end
 
-let create scope ({ clock; clear; start; finish; direction; amount } : _ I.t)
-  : _ O.t
-  =
+let create scope ({clock; clear; start; finish; direction; amount} : _ I.t): _ O.t =
   let spec = Reg_spec.create ~clock ~clear () in
   let open Always in
 

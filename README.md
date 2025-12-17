@@ -1,5 +1,7 @@
 ## Jane Street Advent of FPGA submission for winter 2025
 
+This Readme contains basic points I found important while learning hardcaml and afterwards contains my approach and steps on how to run the code. 
+
 **Basic points:**
 
 1. **OCaml** is a high-level programming language. **Hardcaml** is a Jane Street library for OCaml to describe and design hardware, essentially acting like an HDL. (Files end in `.ml`.)
@@ -42,4 +44,8 @@ Some operations like addition (+:) do not care about signed or unsigned nature s
 2. \*: is unsigned multiplication and \*+ is signed. Operands can have arbitrary widths, result will be the sum of the widths. 
 3. &: logical and, |: logical or, ^: logical xor, ~: logical not. For all binary operators, both widths must be the exact same. 
 4. ==: is equality operator, <+ , <=+, >+, >=+ are signed and <:, <=:, >: and >=: are unsigned. <>:  means not equal. The result is a single bit (true or false). Both widths must be the same. 
+
+# Approach:
+
+**Day 1**
 
