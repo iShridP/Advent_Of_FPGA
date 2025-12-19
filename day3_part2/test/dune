@@ -1,0 +1,11 @@
+(executable
+ (name output_joltage_tb)
+ (libraries 
+    core 
+    hardcaml 
+    output_joltage 
+    hardcaml_test_harness
+    hardcaml_waveterm 
+    re)
+ (preprocess
+  (pps ppx_hardcaml ppx_jane)))

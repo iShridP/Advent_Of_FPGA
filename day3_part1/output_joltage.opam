@@ -10,3 +10,4 @@ available: arch != "arm32" & arch != "x86_32"
 synopsis: "Advent of FPGA"
 description: "
 Advent of FPGA
+"

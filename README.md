@@ -45,7 +45,34 @@ Some operations like addition (+:) do not care about signed or unsigned nature s
 3. &: logical and, |: logical or, ^: logical xor, ~: logical not. For all binary operators, both widths must be the exact same. 
 4. ==: is equality operator, <+ , <=+, >+, >=+ are signed and <:, <=:, >: and >=: are unsigned. <>:  means not equal. The result is a single bit (true or false). Both widths must be the same. 
 
+The concatenation operator is @:, for 2 Signal.t types a and b, a@:b is [a|b] type value. Total width is width a + width b.
+
 # Approach:
 
 **Day 1**
 
+Part 1: For the dial counter we had to create a dial register called *pos*, and keep track of how many times *pos* becomes zero. Since the amount of times turned by the dial can be very large, creating multiple rotations of the dial, we have to ensure that we restict this *pos* to be between 0-99. Hence we include variables *moved_pos* and *wrapped_pos*. 
+
+Since $100*N + k$ number of dial rotations is the same as k rotations (for part 1), we calculate *reduced_amount* as amount%100. Since we cant directly implement division/modulus operations in one clock cycle, we instead use magic number division in which we estimate multiplication by 0.01 as:
+
+$0.01 = \frac{M}{2^k}$
+
+Choosing a suitable large accuracy of k, we can easily perform division by 100 multiplying by $M$ followed by right shift by k. This *reduced_amount* is added into current *pos* to make *moved_pos* and adjusted for 0-99 range by *wrapped_pos*. If *wrapped_pos* is zero after this computation then *pwd* register is incremented by 1. 
+
+We also create a basic 3 state moore FSM for this computation. When finish is inputted by testbench signaling end of input dial rotations, the *pwd_valid* flag is set to vdd. 
+
+Part 2: This is similar to the first part, except now we also care about the number of times the dial crosses 0 as well. Hence we care both about the remainder and quotient of amount%100. The quotient can directly be added into *pwd* since we are guaranteed to cross 0. 
+
+**Day 3**
+
+Part 1: It is assumed here, and I have designed a testbench, where the input to the FPGA is the entire *joltage_bank* as a single number represented in raw binary format. Hence when input value *bank_value* is recieved, we have to break it down into the individual digits and compare values to reach the optimal max joltage. 
+
+The logic to finding max joltage is: Given a *bank_value* number, we start from right to left. If the final joltage is represented as AB (A*10 + B) then last digit is automatically B and second last automatically A for now. We then move from right to left. For the third digit, if it is > A then A is set to that value and B is set to A. If the third digit is < A then we do the following:
+1. If third digit is also < B then we ignore that digit completely
+2. If third digit is > B then we save it in register B_contender. If a new value of A is later found which is more left, then B is set to B_contender. (We cannot immediately set B to B_contender since B_contender is to left of A --> will make joltage BA and not AB).
+
+We go from right to left in this manner until we reach end of entire bank. Each digit calculation and comparison occurs in one clock cycle, hence for a 100 digit input (as in input.txt), each bank_value requires 100 clock cycles to compute after which we take in next value. The testbench in designed such that it will input new value after 100 clock cycles and FSM is also designed as such.
+
+For breaking up the bank into its individual digits we the double dabble method. It is cheap, although quite slow, still found better than doing modulus and division on a 330+ bit number (as given in input.txt). The testbench will wait for 2 clock cycles before giving next *bank_value* since the FSM is designed to do computation in 2 states, Accept and Calculate.
+
+Part 2: This is an extension of Part 1 in which instead of using the raw BCD digits array for new max values, we use the masked digits BCD list as it has removed aldready used values in calculating joltage and everything to the left of it. We do this calculation for 12 selections, starting from most significant to least. 
