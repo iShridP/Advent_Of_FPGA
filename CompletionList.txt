@@ -4,3 +4,4 @@ Completed Parts:
 3. Day 2 part 1
 4. Day 3 part 1
 5. Day 3 part 2
+6. Day 4 part 1
