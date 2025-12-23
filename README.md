@@ -47,6 +47,14 @@ Some operations like addition (+:) do not care about signed or unsigned nature s
 
 The concatenation operator is @:, for 2 Signal.t types a and b, a@:b is [a|b] type value. Total width is width a + width b.
 
+# How to run the testbench
+
+A bash script has aldready been created in each question directory. Go into the question day(day)_part(1/2) and run:
+
+	bash runtestbench.sh
+
+This will open gtkwave (assuming aldready installed, if not do 'sudo apt install gtkwave' and run). The waveform can be viewed, output signal ports can ebe added and by scrolling to end of waveform the final values can be seen. 
+
 # Approach:
 
 **Day 1**
@@ -76,3 +84,7 @@ We go from right to left in this manner until we reach end of entire bank. Each 
 For breaking up the bank into its individual digits we the double dabble method. It is cheap, although quite slow, still found better than doing modulus and division on a 330+ bit number (as given in input.txt). The testbench will wait for 2 clock cycles before giving next *bank_value* since the FSM is designed to do computation in 2 states, Accept and Calculate.
 
 Part 2: This is an extension of Part 1 in which instead of using the raw BCD digits array for new max values, we use the masked digits BCD list as it has removed aldready used values in calculating joltage and everything to the left of it. We do this calculation for 12 selections, starting from most significant to least. 
+
+**Day 4**
+
+Part 1: The logic is straightforward, we interprit each row as a bitstring @ -> 1 and . -> 0, we feed this row at each clock cycle and the FPGA will keep 3 buffers of past, current and future row (new row is added as future row). We utilise paralellism to go through all indices i = 0 to i = 139 of the bitstring row provided and check if there is paper roll or not, if there is we check the surroundings and if the condition of <4 rolls being there is fulfiled. At last we send total number of rolls in that row which can be removed, which is added to the *total_rolls* register. We use an FSM with 2 basic states, accept and calculate, which accept the new row into *next_row* and will update each of the row registers, and calculate state which will update the *total_rolls* register. When finish flag is set to 1, we will move to EndCalculate state and give a dummy all 0 row as the next_row so that the last valid row moves into current_row and its valid number of rolls is added to the sum. 

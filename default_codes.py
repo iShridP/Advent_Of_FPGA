@@ -142,35 +142,46 @@ Advent of FPGA
 profile=janestreet
     """
 
+    bash_script_code = f"""
+#!/usr/bin/env bash
+set -e
 
-    # 3. Create Structure
+dune build bin/generate.exe @runtest
+dune exec test/{project_name}_tb.exe
+gtkwave {project_name}.vcd
+
+"""
+
+
+    #Create Structure
     base_dir = os.path.join(os.getcwd(), folder_name)
     make_directory(base_dir)
 
-    # Create Subdirectories
+    #create Subdirectories
     make_directory(os.path.join(base_dir, "src"))
     make_directory(os.path.join(base_dir, "bin"))
     make_directory(os.path.join(base_dir, "test"))
     make_directory(os.path.join(base_dir, "images"))
 
-    # src/ files
+    #src/files
     create_file(os.path.join(base_dir, "src", "dune"), src_dune_content)
     create_file(os.path.join(base_dir, "src", f"{project_name}.ml"), empty_content)
 
-    # bin/ files
+    #bin/files
     create_file(os.path.join(base_dir, "bin", "dune"), bin_dune_content)
     create_file(os.path.join(base_dir, "bin", "generate.ml"), bin_main_content)
 
-    # test/ files
+    #test/files
     create_file(os.path.join(base_dir, "test", "dune"), test_dune_content)
     create_file(os.path.join(base_dir, "test", f"{project_name}_tb.ml"), empty_content)
 
-    # other
+    #other
     create_file(os.path.join(base_dir, "Makefile"), makefile_content)
     create_file(os.path.join(base_dir, "input.txt"), empty_content)
     create_file(os.path.join(base_dir, "dune-project"), dune_project_content)
     create_file(os.path.join(base_dir, f"{project_name}.opam"), opam_content)
     create_file(os.path.join(base_dir, ".ocamlformat"), ocamlformat_content)
+    create_file(os.path.join(base_dir, "runtestbench.sh"), bash_script_code)
 
     print(f"\nBasic project files of '{project_name}' created.")
 

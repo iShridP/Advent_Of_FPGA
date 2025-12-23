@@ -31,8 +31,7 @@ let run sim filename =
           | `Empty -> ()
           | `Input (row_bits) ->
             inputs.row := row_bits;
-            tick sim;
-            tick sim
+            tick sim; 
         )
     );
 
@@ -70,7 +69,7 @@ let () =
 
   run sim "input.txt";
 
-  for _ = 1 to 5 do
+  for _ = 1 to 40000 do (*a test length of 40000, depends on input but this high value should do*)
     tick sim
   done;  
 
