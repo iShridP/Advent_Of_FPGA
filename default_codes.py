@@ -149,7 +149,6 @@ set -e
 dune build bin/generate.exe @runtest
 dune exec test/{project_name}_tb.exe
 gtkwave {project_name}.vcd
-
 """
 
 

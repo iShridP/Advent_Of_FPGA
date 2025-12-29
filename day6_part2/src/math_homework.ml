@@ -6,7 +6,8 @@ let ram_depth = 1000
 let num_bits_ram_represent = num_bits_to_represent ram_depth
 let num_input_bits = 16       
 let num_internal_bits = 32     
-let num_result_bits = 64       
+let num_result_bits = 64
+let num_bits_shift = 4 
 
 module I = struct
   type 'a t = {
@@ -15,7 +16,8 @@ module I = struct
     start : 'a;
     finish : 'a;
     data_in : 'a [@bits num_input_bits]; 
-    write_en : 'a;                    
+    shift : 'a [@bits num_bits_shift];
+    write_en : 'a
   }
   [@@deriving hardcaml]
 end
@@ -29,12 +31,10 @@ end
 
 let div_mod_10 input =
   let width = width input in
-
-  let magic_num = of_int_trunc ~width:17 52429 in (*shift by 19 for this magic number for div by 10*)
+  let magic_num = of_int_trunc ~width:17 52429 in 
   let product = (uresize input ~width:width) *: magic_num in
   let quotient = uresize (log_shift ~f:srl product ~by:(of_int_trunc ~width:5 19)) ~width:width in
   let remainder = input -: (uresize (quotient *: (of_int_trunc ~width:4 10)) ~width:width) in
-
   (quotient, uresize remainder ~width:4) 
 
 let get_places (number : Signal.t) =
@@ -42,27 +42,19 @@ let get_places (number : Signal.t) =
   let remaining, tens = div_mod_10 remaining in
   let remaining, hundreds = div_mod_10 remaining in
   let _, thousands = div_mod_10 remaining in
-
   (ones, tens, hundreds, thousands)
 
 let num_digits (num_1: Signal.t) (num_2: Signal.t) (num_3: Signal.t) =
-  mux2
-    (num_3 <>:. 0)
-    (of_int_trunc ~width:3 4)
-    (mux2
-       (num_2 <>:. 0)
-       (of_int_trunc ~width:3 3)
-       (mux2
-          (num_1 <>:. 0)
-          (of_int_trunc ~width:3 2)
-          (of_int_trunc ~width:3 1))) 
+  mux2 (num_3 <>:. 0) (of_int_trunc ~width:3 4)
+    (mux2 (num_2 <>:. 0) (of_int_trunc ~width:3 3)
+       (mux2 (num_1 <>:. 0) (of_int_trunc ~width:3 2) (of_int_trunc ~width:3 1))) 
 
 let mux4 selector d0 d1 d2 d3 =
   mux selector [ d0; d1; d2; d3 ]
 
 let get_new_num (digits: Signal.t) (num_0: Signal.t) (num_1: Signal.t) (num_2: Signal.t) (num_3: Signal.t) =
   mux4
-    (digits -: (of_int_trunc ~width:3 1)) (*because selector is like 0 1 2 3*)
+    (uresize (digits -: (of_int_trunc ~width:3 1)) ~width:2)
     (uresize (num_0 *: of_int_trunc ~width:16 1) ~width:num_internal_bits)
     (uresize (num_0 *: of_int_trunc ~width:16 10 +: num_1 *: of_int_trunc ~width:16 1) ~width:num_internal_bits)
     (uresize (num_0 *: of_int_trunc ~width:16 100 +: num_1 *: of_int_trunc ~width:16 10 +: num_2 *: of_int_trunc ~width:16 1) ~width:num_internal_bits)
@@ -86,10 +78,18 @@ let weird_ahh_number_making (num1 : Signal.t) (num2 : Signal.t) (num3 : Signal.t
   (new_num1, new_num2, new_num3, new_num4)
 
 let convert_to_one_if_zero (num: Signal.t) =
-  mux2 
-    (num ==:. 0) 
-    (of_int_trunc ~width:(width num) 1) 
-    num
+  mux2 (num ==:. 0) (of_int_trunc ~width:(width num) 1) num
+
+let shift_by_factor (data: Signal.t) (shift: Signal.t) =
+  let width = width data in
+  uresize (
+    mux4 
+      (uresize shift ~width:2)
+      (data *: (of_int_trunc ~width:16 1))
+      (data *: (of_int_trunc ~width:16 10))
+      (data *: (of_int_trunc ~width:16 100))
+      (data *: (of_int_trunc ~width:16 1000))
+  ) ~width:width
 
 let make_ram ~clock ~we ~w_addr ~w_data ~r_addr =
   let output = 
@@ -107,7 +107,7 @@ module States = struct
   [@@deriving sexp_of, compare ~localize, enumerate] 
 end
 
-let create scope ({clock; clear; start; finish; data_in; write_en}: _ I.t): _ O.t = 
+let create scope ({clock; clear; start; finish; data_in; write_en; shift}: _ I.t): _ O.t = 
   let spec = Reg_spec.create ~clock:clock ~clear:clear () in
   let open Always in
 
@@ -115,14 +115,13 @@ let create scope ({clock; clear; start; finish; data_in; write_en}: _ I.t): _ O.
 
   (* Pointers *)
   let%hw_var write_col_idx = Variable.reg spec ~width:(num_bits_ram_represent) in
-  let%hw_var write_row_idx = Variable.reg spec ~width:3 in (*which operand ka row*)
+  let%hw_var write_row_idx = Variable.reg spec ~width:3 in 
   let%hw_var read_col_idx = Variable.reg spec ~width:(num_bits_ram_represent) in
   let%hw_var max_col_count = Variable.reg spec ~width:(num_bits_ram_represent) in
 
   let%hw_var grand_total = Variable.reg spec ~width:num_result_bits in
   let%hw_var grand_total_valid = Variable.wire ~default:gnd () in
 
-  (*decode which RAM is being written to*)
   let wr_enable_1 = write_en &: (write_row_idx.value ==:. 0) in
   let wr_enable_2 = write_en &: (write_row_idx.value ==:. 1) in
   let wr_enable_3 = write_en &: (write_row_idx.value ==:. 2) in
@@ -131,21 +130,24 @@ let create scope ({clock; clear; start; finish; data_in; write_en}: _ I.t): _ O.
 
   let w_data_32 = uresize data_in ~width:num_internal_bits in
 
-  (*5 RAM blocks *)
-  (*share the same read/write addresses, but we control which one writes via enable*)
   let r_data_1 = uresize (make_ram ~clock:clock ~we:wr_enable_1 ~w_addr:write_col_idx.value ~w_data:w_data_32 ~r_addr:read_col_idx.value) ~width:num_result_bits in
   let r_data_2 = uresize (make_ram ~clock:clock ~we:wr_enable_2 ~w_addr:write_col_idx.value ~w_data:w_data_32 ~r_addr:read_col_idx.value) ~width:num_result_bits in
   let r_data_3 = uresize (make_ram ~clock:clock ~we:wr_enable_3 ~w_addr:write_col_idx.value ~w_data:w_data_32 ~r_addr:read_col_idx.value) ~width:num_result_bits in
   let r_data_4 = uresize (make_ram ~clock:clock ~we:wr_enable_4 ~w_addr:write_col_idx.value ~w_data:w_data_32 ~r_addr:read_col_idx.value) ~width:num_result_bits in
   let r_op = uresize (make_ram ~clock:clock ~we:wr_enable_op~w_addr:write_col_idx.value ~w_data:w_data_32 ~r_addr:read_col_idx.value) ~width:num_result_bits in
 
-  let new_num1, new_num2, new_num3, new_num4 = weird_ahh_number_making r_data_1 r_data_2 r_data_3 r_data_4 in
+  let shift_data_1 = make_ram ~clock:clock ~we:wr_enable_1 ~w_addr:write_col_idx.value ~w_data:shift ~r_addr:read_col_idx.value in
+  let shift_data_2 = make_ram ~clock:clock ~we:wr_enable_2 ~w_addr:write_col_idx.value ~w_data:shift ~r_addr:read_col_idx.value in
+  let shift_data_3 = make_ram ~clock:clock ~we:wr_enable_3 ~w_addr:write_col_idx.value ~w_data:shift ~r_addr:read_col_idx.value in
+  let shift_data_4 = make_ram ~clock:clock ~we:wr_enable_4 ~w_addr:write_col_idx.value ~w_data:shift ~r_addr:read_col_idx.value in
 
-  (*calculate both the possibilities at once*)
+
+  let new_num1, new_num2, new_num3, new_num4 = weird_ahh_number_making (shift_by_factor r_data_1 shift_data_1) (shift_by_factor r_data_2 shift_data_2) (shift_by_factor r_data_3 shift_data_3) (shift_by_factor r_data_4 shift_data_4) in
+
   let sum_res = uresize (new_num1 +: new_num2 +: new_num3 +: new_num4) ~width:num_result_bits in
   let mul_res = uresize ((convert_to_one_if_zero new_num1) *: (convert_to_one_if_zero new_num2) *: (convert_to_one_if_zero new_num3) *: (convert_to_one_if_zero new_num4)) ~width:num_result_bits in
 
-  let is_mult = lsb r_op in (*mult or add flag is just lsb*)
+  let is_mult = lsb r_op in 
   let column_result = mux2 is_mult mul_res sum_res in
 
   compile [

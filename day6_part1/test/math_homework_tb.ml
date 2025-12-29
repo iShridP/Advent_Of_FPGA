@@ -14,19 +14,13 @@ let parse_line line =
   let clean_line = String.strip line in
   if String.is_empty clean_line then `Empty
   else 
-    let parts = 
+    let numbers = 
       String.split ~on:' ' clean_line
       |> List.filter ~f:(fun s -> not (String.is_empty s)) 
-    in
-    let numbers = 
-      List.map parts ~f:(fun s ->
-          match s with
+      |> List.map ~f:(function
           | "+" -> 0
           | "*" -> 1
-          | _ -> 
-            match Int.of_string_opt s with
-            | Some i -> i
-            | None -> failwith (Printf.sprintf "something wrong: '%s' in line: %s" s line)
+          | s -> Int.of_string s
         )
     in
     `Row numbers
@@ -38,9 +32,6 @@ let run sim filename =
           match parse_line line with
           | `Empty -> ()
           | `Row numbers ->
-            (*drive shift to 0 by default rn*)
-            inputs.shift := Bits.zero 4; 
-
             List.iter numbers ~f:(fun n ->
                 inputs.write_en := Bits.vdd;
                 inputs.data_in := Bits.of_int_trunc ~width:16 n;
@@ -67,13 +58,11 @@ let () =
 
   let inputs = Cyclesim.inputs sim in
 
-  (* Initialize inputs *)
   inputs.clock := Bits.gnd;
   inputs.start := Bits.gnd;
   inputs.finish := Bits.gnd;
   inputs.write_en := Bits.gnd;
   inputs.data_in := Bits.zero 16;
-  inputs.shift := Bits.zero 4;
 
   inputs.clear := Bits.vdd;
   tick sim;
@@ -86,7 +75,7 @@ let () =
   tick sim;
   inputs.start := Bits.gnd;
 
-  for _ = 1 to 2000 do
+  for _ = 1 to 2000 do  (*some sample length*)
     tick sim
   done;  
 

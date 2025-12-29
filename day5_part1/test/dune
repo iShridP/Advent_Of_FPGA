@@ -1,0 +1,11 @@
+(executable
+ (name fresh_id_tb)
+ (libraries 
+    core 
+    hardcaml 
+    fresh_id 
+    hardcaml_test_harness
+    hardcaml_waveterm 
+    re)
+ (preprocess
+  (pps ppx_hardcaml ppx_jane)))

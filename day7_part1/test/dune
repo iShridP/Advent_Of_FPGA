@@ -1,0 +1,11 @@
+(executable
+ (name tachyon_beam_tb)
+ (libraries 
+    core 
+    hardcaml 
+    tachyon_beam 
+    hardcaml_test_harness
+    hardcaml_waveterm 
+    re)
+ (preprocess
+  (pps ppx_hardcaml ppx_jane)))

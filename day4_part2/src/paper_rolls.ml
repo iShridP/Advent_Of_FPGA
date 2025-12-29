@@ -28,7 +28,7 @@ end
 module States = struct
   type t = Idle | LoadInput | IterationStart | ProcessRow | IterationCheck | Done
   [@@deriving sexp_of, compare ~localize, enumerate]
-end
+end                       
 
 
 let get_row_logic (curr_row: Signal.t) (p_row: Signal.t) (n_row: Signal.t) = 
@@ -40,17 +40,17 @@ let get_row_logic (curr_row: Signal.t) (p_row: Signal.t) (n_row: Signal.t) =
 
         let neighbors = 
           if i = 0 then
-            [ bit p_row ~pos:i; bit p_row ~pos:(i+1); 
-              bit curr_row ~pos:(i+1); 
-              bit n_row ~pos:i; bit n_row ~pos:(i+1) ]
+            [bit p_row ~pos:i; bit p_row ~pos:(i+1); 
+             bit curr_row ~pos:(i+1); 
+             bit n_row ~pos:i; bit n_row ~pos:(i+1)]
           else if i = 139 then
-            [ bit p_row ~pos:(i-1); bit p_row ~pos:i; 
-              bit curr_row ~pos:(i-1); 
-              bit n_row ~pos:(i-1); bit n_row ~pos:i ]
+            [bit p_row ~pos:(i-1); bit p_row ~pos:i; 
+             bit curr_row ~pos:(i-1); 
+             bit n_row ~pos:(i-1); bit n_row ~pos:i]
           else
-            [ bit p_row ~pos:(i-1); bit p_row ~pos:i; bit p_row ~pos:(i+1);
-              bit curr_row ~pos:(i-1); bit curr_row ~pos:(i+1);
-              bit n_row ~pos:(i-1); bit n_row ~pos:i; bit n_row ~pos:(i+1) ]
+            [bit p_row ~pos:(i-1); bit p_row ~pos:i; bit p_row ~pos:(i+1);
+             bit curr_row ~pos:(i-1); bit curr_row ~pos:(i+1);
+             bit n_row ~pos:(i-1); bit n_row ~pos:i; bit n_row ~pos:(i+1)]
         in
 
         let neighbor_sum = 
@@ -128,9 +128,7 @@ let create scope ({clock; clear; start; finish; row}: _ I.t): _ O.t =
                ] 
                [
                  switch row_index.value 
-                   (List.init 140 ~f:(fun i -> 
-                        (of_int_trunc ~width:num_bits_index i, [grid_storage.(i) <-- row])
-                      ));
+                   (List.init 140 ~f:(fun i -> (of_int_trunc ~width:num_bits_index i, [grid_storage.(i) <-- row])));
                  row_index <-- row_index.value +: (of_int_trunc ~width:num_bits_index 1);
                ]
            ]
@@ -156,15 +154,15 @@ let create scope ({clock; clear; start; finish; row}: _ I.t): _ O.t =
              row_index <-- row_index.value +: (of_int_trunc ~width:num_bits_index 1);
 
              if_ (row_index.value >=: (max_rows.value -: (of_int_trunc ~width:num_bits_index 1))) 
-               [ sm.set_next IterationCheck ]
-               [ sm.set_next ProcessRow ]
+               [sm.set_next IterationCheck]
+               [sm.set_next ProcessRow]
            ]
           );
           (IterationCheck,
            [
              if_ (total_rolls.value ==: past_total_rolls.value)
-               [ sm.set_next Done ] 
-               [ sm.set_next IterationStart ]
+               [sm.set_next Done] 
+               [sm.set_next IterationStart]
            ]
           );
           (Done, 
