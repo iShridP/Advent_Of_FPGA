@@ -96,8 +96,8 @@ let make_ram ~clock ~we ~w_addr ~w_data ~r_addr =
     Ram.create 
       ~collision_mode:Read_before_write 
       ~size:ram_depth
-      ~write_ports:[| { write_clock=clock; write_enable=we; write_address=w_addr; write_data=w_data } |]
-      ~read_ports:[|  { read_clock=clock; read_enable=vdd; read_address=r_addr } |]
+      ~write_ports:[|{write_clock=clock; write_enable=we; write_address=w_addr; write_data=w_data}|]
+      ~read_ports:[|{read_clock=clock; read_enable=vdd; read_address=r_addr}|]
       ()
   in
   output.(0)
@@ -113,7 +113,6 @@ let create scope ({clock; clear; start; finish; data_in; write_en; shift}: _ I.t
 
   let sm = State_machine.create (module States) spec in
 
-  (* Pointers *)
   let%hw_var write_col_idx = Variable.reg spec ~width:(num_bits_ram_represent) in
   let%hw_var write_row_idx = Variable.reg spec ~width:3 in 
   let%hw_var read_col_idx = Variable.reg spec ~width:(num_bits_ram_represent) in

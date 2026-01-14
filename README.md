@@ -4,6 +4,8 @@ This Readme contains basic points I found important while learning hardcaml and 
 
 **Basic points:**
 
+Some things I noted while learning OCaml
+
 1. **OCaml** is a high-level programming language. **Hardcaml** is a Jane Street library for OCaml to describe and design hardware, essentially acting like an HDL. (Files end in `.ml`.)
 2. **opam** is like conda. It manages packages and creates virtual environments for OCaml installations and libraries.
 3. **dune** is a build system for OCaml projects. It compiles `.ml` files.
@@ -97,3 +99,12 @@ Since all the intervals are disjoint, find the smallest upper bound such that in
 The main reason I want all new IDs to be grouped into disjoint intervals upfront is that, once this is done, checking any number of IDs becomes very simple. Since the inventory does not change very often, it makes sense to do this organization once and then rely on it for repeated checks.
 
 **Day 6**
+
+The problem give a series of vertical math operations where groups of numbers must be either added or multiplied based on a symbol at the bottom. My implementation treats these vertical columns as parallel memory entries. I utilized 5 distinct RAM blocks: four to store the numerical operands and one to store the operator for each column.
+
+During the loading phase, the input is parsed such that the rows of numbers fill the first four RAM blocks, and the operator row fills the fifth. For the calculation phase, the logic iterates through the memory indices. To maximize throughput, the design simultaneously computes both the sum (A+B+C+D) and the product (A×B×C×D) of the four operands in parallel. The value stored in the operator RAM then acts as a selector for a multiplexer, instantly choosing the correct result. This value is added to a running grand_total accumulator, allowing the entire worksheet to be solved in a single pipelined pass.
+
+
+**Day 7**
+
+the code tracks the entire "wavefront" of beams row by row. It uses a single wide register (*is_beam_current*) to represent the current row, where each "ON" bit means a beam is present at that column. As the hardware scans through the map, it doesn't recursively trace paths; instead, it looks at the current row's beams and "projects" them into a next register for the future—beams hitting empty space fall straight down, while beams hitting a splitter mark their left and right neighbors in the next row and increment the counter. At the end of each row, the "future" becomes the "present," allowing the FPGA to process infinite merges and splits in a single linear pass from top to bottom without ever retracing its steps.

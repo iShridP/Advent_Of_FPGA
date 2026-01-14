@@ -1,0 +1,11 @@
+(executable
+ (name junction_box_tb)
+ (libraries 
+    core 
+    hardcaml 
+    junction_box 
+    hardcaml_test_harness
+    hardcaml_waveterm 
+    re)
+ (preprocess
+  (pps ppx_hardcaml ppx_jane)))

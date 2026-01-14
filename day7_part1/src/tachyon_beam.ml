@@ -46,7 +46,6 @@ let create scope ({clock; clear; start; finish; finish_row; manifold_item}: _ I.
   let width_row = Variable.reg spec ~width:num_bits_width in
   let current_row_pos = Variable.reg spec ~width:num_bits_width in
 
-  (* FIX: Added labeled arguments ~f and ~by *)
   let dynamic_sll target shift_amount = Signal.log_shift ~f:Signal.sll target ~by:shift_amount in
   let dynamic_srl target shift_amount = Signal.log_shift ~f:Signal.srl target ~by:shift_amount in
 
@@ -75,7 +74,7 @@ let create scope ({clock; clear; start; finish; finish_row; manifold_item}: _ I.
           width_row <-- width_row.value +: (of_int_trunc ~width:num_bits_width 1);
 
           when_ (manifold_item ==:. 2)[
-            (* FIX: 'one' is a function, must provide width to create a Signal *)
+
             is_beam_current <-- (is_beam_current.value |: dynamic_sll (one num_bits_width_is_beam_flag_number) width_row.value);
           ];
 
